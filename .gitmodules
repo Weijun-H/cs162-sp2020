@@ -1,0 +1,9 @@
+[submodule "lab"]
+	path = lab
+	url = https://github.com/Berkeley-CS162/student0
+[submodule "group"]
+	path = group
+	url = https://github.com/Berkeley-CS162/group0
+[submodule "student"]
+	path = student
+	url = https://github.com/Berkeley-CS162/student0
