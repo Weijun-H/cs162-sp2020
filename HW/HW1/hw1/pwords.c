@@ -45,6 +45,21 @@ int main(int argc, char *argv[]) {
     count_words(&word_counts, stdin);
   } else {
     /* TODO */
+    int nthreads = argc - 1;
+    pthread_t threads[nthreads];
+    for(int t = 0; t < nthreads; t++) {
+      targs_t* targs = (targs_t *) malloc(sizeof(targs_t));
+      targs->filename = argv[t+1];
+      targs->word_counts = &word_counts;
+      rc = pthread_create(&threads[t], NULL, threadfun, (void *)targs);
+      if (rc) {
+	printf("ERROR; return code from pthread_create() is %d\n", rc);
+	exit(-1);
+      }
+    }
+    for(int t = 0; t < nthreads; t++) {
+      pthread_join(threads[t], NULL);
+    }
   }
 
   /* Output final result of all threads' work. */
