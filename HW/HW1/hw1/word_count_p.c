@@ -29,7 +29,7 @@
 #endif
 
 #include "word_count.h"
-
+#include "list.h"
 void init_words(word_count_list_t *wclist) {
   /* TODO */
     list_init(&wclist->lst);
@@ -80,10 +80,20 @@ void fprint_words(word_count_list_t *wclist, FILE *outfile) {
         for (e = list_begin(&wclist->lst); e != list_end(&wclist->lst); e = list_next(e)) {
 	        word_count_t *wc = list_entry(e, word_count_t, elem);
 		    fprintf(outfile, "%8d\t%s\n", wc->count, wc->word);
+	}
 }
+
+bool less_list(const struct list_elem *ewc1,
+                          const struct list_elem *ewc2, void *aux) {
+    bool (*less)(const word_count_t *, const word_count_t *) = aux;
+    word_count_t *wc1 = list_entry(ewc1, word_count_t, elem);
+    word_count_t *wc2 = list_entry(ewc2, word_count_t, elem);
+    return less(wc1, wc2);
+}
+
 
 void wordcount_sort(word_count_list_t *wclist,
                     bool less(const word_count_t *, const word_count_t *)) {
   /* TODO */
-      list_sort(&wclist->lst, less_list, less);
+  list_sort(&wclist->lst, less_list, less);
 }
