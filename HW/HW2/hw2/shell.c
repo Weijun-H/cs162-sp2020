@@ -98,6 +98,7 @@ int cmd_exec(struct tokens *tokens){
     }
     args[len] = NULL;
     execv(path, args);
+    exit(0);
   }else{
     wait(&res);
   }
@@ -159,10 +160,12 @@ int main(unused int argc, unused char *argv[]) {
       cmd_table[fundex].fun(tokens);
     } else {
 //      /* REPLACE this to run commands as programs. */
-//      fprintf(stdout, "This shell doesn't know how to run programs.\n");
-        cmd_exec(tokens);
+      if(tokens_get_length(tokens) >= 2){
+	cmd_exec(tokens);
+      }else {
+	fprintf(stdout, "This shell doesn't know how to run programs.\n");
+      }
     }
-
     if (shell_is_interactive)
       /* Please only print shell prompts when standard input is not a tty */
       fprintf(stdout, "%d: ", ++line_num);
