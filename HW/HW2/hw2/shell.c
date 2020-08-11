@@ -33,6 +33,7 @@ int cmd_exit(struct tokens *tokens);
 int cmd_help(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
+int cmd_exec(struct tokens *tokens);
 
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
@@ -48,8 +49,7 @@ fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_exit, "exit", "exit the command shell"},
   {cmd_pwd, "pwd", "print the current directory"},
-  {cmd_cd, "cd", "change directory"}
-
+  {cmd_cd, "cd", "change directory"},
 };
 
 /* Prints a helpful description for the given command */
@@ -76,11 +76,32 @@ int cmd_pwd(unused struct tokens *tokens){
 /* Change directort */
 int cmd_cd(struct tokens *tokens){
   int check = chdir(tokens_get_token(tokens,1));
-  if(check = 0){
+  if(check == 0){
     cmd_pwd(tokens);
   }else{
     printf("Error Directory\n");
+    return -1;
   }
+  return 1;
+}
+
+/* Execute File */
+int cmd_exec(struct tokens *tokens){
+  int res;
+  pid_t pid = fork();
+  if(pid == 0){
+    unused char *path = tokens_get_token(tokens, 0);
+    int len = tokens_get_length(tokens);
+    unused char *args[len + 1];
+    for(int i = 0;i < len;i++){
+      args[i] = tokens_get_token(tokens, i);
+    }
+    args[len] = NULL;
+    execv(path, args);
+  }else{
+    wait(&res);
+  }
+  return 1;
 }
 
 /* Looks up the built-in command, if it exists. */
@@ -137,8 +158,9 @@ int main(unused int argc, unused char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
-      /* REPLACE this to run commands as programs. */
-      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+//      /* REPLACE this to run commands as programs. */
+//      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+        cmd_exec(tokens);
     }
 
     if (shell_is_interactive)
