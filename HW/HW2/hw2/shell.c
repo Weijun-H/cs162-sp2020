@@ -33,6 +33,7 @@ int cmd_exit(struct tokens *tokens);
 int cmd_help(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
+
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -74,6 +75,12 @@ int cmd_pwd(unused struct tokens *tokens){
 
 /* Change directort */
 int cmd_cd(struct tokens *tokens){
+  int check = chdir(tokens_get_token(tokens,1));
+  if(check = 0){
+    cmd_pwd(tokens);
+  }else{
+    printf("Error Directory\n");
+  }
 }
 
 /* Looks up the built-in command, if it exists. */
