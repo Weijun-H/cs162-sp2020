@@ -34,7 +34,8 @@ int cmd_help(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
 int cmd_exec(struct tokens *tokens);
-
+int is_full_directory(char* path);
+char *find_path(char* path, char *final_path );
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -86,11 +87,20 @@ int cmd_cd(struct tokens *tokens){
 }
 
 /* Execute File */
-int cmd_exec(struct tokens *tokens){
+int cmd_exec(struct tokens *tokens){ 
+    char *final_path;
+  if(is_full_directory(tokens_get_token(tokens,0)) == 0){
+    final_path = find_path(tokens_get_token(tokens,0), final_path);
+  }
   int res;
   pid_t pid = fork();
   if(pid == 0){
-    unused char *path = tokens_get_token(tokens, 0);
+    unused char *path;
+    if(final_path==NULL){
+      path = tokens_get_token(tokens, 0);
+    }else{
+      path = final_path;
+    }
     int len = tokens_get_length(tokens);
     unused char *args[len + 1];
     for(int i = 0;i < len;i++){
@@ -112,6 +122,50 @@ int lookup(char cmd[]) {
       return i;
   return -1;
 }
+
+/* Check if the agrument is full directory */
+int is_full_directory(char* path){
+  char *step = path;
+
+  for(int i=0; i<sizeof(path)/sizeof(char); i++,step++){
+    if(*step == '/'){
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int isFileExistsAccess(const char *path)
+{
+// Check for file existence
+  if (access(path, F_OK) == -1)
+    return 0;
+  return 1;
+}
+  
+/* Find one accessable path */
+char *find_path(char* path, char *final_path ){
+  char paths[PATH_MAX];
+  strcpy(paths, getenv("PATH"));
+  for (int i=0; paths[i] != '\0'; i++){
+    if(paths[i] == ':'){
+      paths[i] = ' ';
+    }
+  }
+  struct tokens* path_tokens = tokenize(paths);
+  char slash[] = {'/', '\0'};
+  char *end = strcat(slash, path);
+  for (int i=0; i<tokens_get_length(path_tokens); i++){
+    char *dir = tokens_get_token(path_tokens, i);
+    char *possible_path = strcat(dir, end);
+    if(isFileExistsAccess(possible_path)){
+      
+      return possible_path;
+    }
+  }
+  return NULL;
+}
+
 
 /* Intialization procedures for this shell */
 void init_shell() {
@@ -160,9 +214,9 @@ int main(unused int argc, unused char *argv[]) {
       cmd_table[fundex].fun(tokens);
     } else {
 //      /* REPLACE this to run commands as programs. */
-      if(tokens_get_length(tokens) >= 2){
-	cmd_exec(tokens);
-      }else {
+	if(tokens_get_length(tokens) >= 2){
+	  cmd_exec(tokens);
+	}else {
 	fprintf(stdout, "This shell doesn't know how to run programs.\n");
       }
     }
