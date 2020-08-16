@@ -200,6 +200,44 @@ bool redirect_stdout(struct tokens *tokens){
   return false;
 }
 
+void executePrograms(char *line){
+  int i = 0;
+  int sep = 0;
+  while(line[i] != '\0'){
+      if(line[i] == '|'){
+      sep = i;
+      break;
+      }
+      i++;
+  }
+  if(sep == 0){
+    struct tokens *tokens = tokenize(line);
+    cmd_exec(tokens);
+  }else{
+    char before[4096];
+    char after[4096];
+    strncpy(before, line, sep-1);
+    before[sep-1] = '\0';
+    strcpy(after, line);
+
+    int pipefd[2];
+    pid_t p1;
+   // if(pipe(pipefd) < 0) perrpr("pipe fail");
+    p1 = fork();
+    if(p1){
+      close(pipefd[1]);
+      dup2(pipefd[0],0);
+      struct tokens *tokens = tokenize(after);
+      cmd_exec(tokens);
+    }else{
+      close(pipefd[0]);
+      dup2(pipefd[1],1);
+      struct tokens *tokens = tokenize(before);
+      cmd_exec(tokens);
+    }
+  }
+}
+
 /* Intialization procedures for this shell */
 void init_shell() {
   /* Our shell is connected to standard input. */
