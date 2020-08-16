@@ -34,8 +34,11 @@ int cmd_help(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
 int cmd_exec(struct tokens *tokens);
+
 int is_full_directory(char* path);
 char *find_path(char* path, char *final_path );
+bool redirect_stdin(struct tokens *tokens);
+bool redirect_stdout(struct tokens *tokens);
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -96,12 +99,18 @@ int cmd_exec(struct tokens *tokens){
   pid_t pid = fork();
   if(pid == 0){
     unused char *path;
+    int len = tokens_get_length(tokens);
+    if(redirect_stdin(tokens) || redirect_stdout(tokens)){
+      len -=2;
+    }
+
     if(final_path==NULL){
       path = tokens_get_token(tokens, 0);
     }else{
       path = final_path;
     }
-    int len = tokens_get_length(tokens);
+    
+  puts(final_path);
     unused char *args[len + 1];
     for(int i = 0;i < len;i++){
       args[i] = tokens_get_token(tokens, i);
@@ -166,6 +175,30 @@ char *find_path(char* path, char *final_path ){
   return NULL;
 }
 
+/* Redirect STDIN if redirect in tokens */
+bool redirect_stdin(struct tokens *tokens){
+  int num_args = tokens_get_length(tokens);
+  if (num_args >= 3 && strcmp(tokens_get_token(tokens, num_args-2), "<") == 0){
+    int fd = open(tokens_get_token(tokens, num_args-1), O_RDONLY);
+    dup2(fd, 0);
+    close(fd);
+    return true;
+  }
+  return false;
+}
+
+/* Redirect STDOUT if redirect in tokens */
+bool redirect_stdout(struct tokens *tokens){
+  int num_args = tokens_get_length(tokens);
+  if(num_args >=3 && strcmp(tokens_get_token(tokens, num_args-2), ">") == 0){
+    printf("Opening file %s.\n", tokens_get_token(tokens, num_args-1));
+    int fd = open(tokens_get_token(tokens, num_args-1), O_RDWR|O_TRUNC|O_CREAT, 0777);
+    dup2(fd, 1);
+    close(fd);
+    return true;
+  }
+  return false;
+}
 
 /* Intialization procedures for this shell */
 void init_shell() {
