@@ -98,6 +98,16 @@ int cmd_exec(struct tokens *tokens){
   int res;
   pid_t pid = fork();
   if(pid == 0){
+    setpgid(0, 0);
+    tcsetpgrp(0, getpgrp());
+		
+    // Reset signal handlers
+    signal(SIGINT, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+    signal(SIGTSTP, SIG_DFL);
+    signal(SIGTTIN, SIG_DFL);
+    signal(SIGTTOU, SIG_DFL);
+    signal(SIGCHLD, SIG_DFL);
     unused char *path;
     int len = tokens_get_length(tokens);
     if(redirect_stdin(tokens) || redirect_stdout(tokens)){
