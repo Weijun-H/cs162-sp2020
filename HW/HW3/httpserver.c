@@ -45,12 +45,11 @@ void serve_file(int fd, char *path) {
 
   http_start_response(fd, 200);
   http_send_header(fd, "Content-Type", http_get_mime_type(path));
-  snprintf(buf2, 10000, "Conten_Legnth:%ld\r\n",rd);
-  write(fd,buf2,10000);
-  //http_send_header(fd, "Content-Length", "0"); // TODO: change this line too
-  write(fd,buf1,rd);
+  snprintf(buf2, 100, "Conten_Legnth:%ld\r\n",rd);
+  write(fd,buf2,100);
   http_end_headers(fd);
-  close(fd);
+  
+  write(fd,buf1,rd);
   return; 
   /* PART 2 END */
 }
@@ -64,7 +63,38 @@ void serve_directory(int fd, char *path) {
   /* PART 3 BEGIN */
 
   // TODO: Open the directory (Hint: opendir() may be useful here)
+  DIR *dirp = opendir(path);
+  struct dirent *directory;
+  int exit = 0;
+  if(dirp){
+    while((directory=readdir(dirp))!=NULL){
+      puts(directory->d_name);
+      if(!strcmp(directory->d_name,"index.html")){
+	exit = 1;
+	break;
+      }
+    }
+  }
+  closedir(dirp);
+    if(exit==1){
+      char buf[10000];
+      http_format_index(buf,path);
+      puts(buf);
+      int fd_server = open(buf, O_RDONLY);
+      char buf1[10000];
+      ssize_t rd = read(fd_server, buf1, 10000);
+      write(fd,buf1,rd);
+    }else{
+      dirp = opendir(path);
+      while((directory=readdir(dirp))!=NULL){
+	char buf [100];
+	http_format_href(buf, path, directory->d_name);
+	write(fd,buf,100);
+      }
+    }
+    return;
 
+  }
   /**
    * TODO: For each entry in the directory (Hint: look at the usage of readdir() ),
    * send a string containing a properly formatted HTML. (Hint: the http_format_href()
@@ -72,7 +102,6 @@ void serve_directory(int fd, char *path) {
    */
 
   /* PART 3 END */
-}
 
 
 /*
@@ -129,13 +158,16 @@ void handle_files_request(int fd) {
   char *dir = malloc(strlen(server_files_directory)+strlen(request->path));
   memcpy(dir, server_files_directory+1, strlen(server_files_directory)-1);
   memcpy(dir+strlen(server_files_directory)-1, request->path, strlen(request->path)+1);
-  if(!stat(dir, &buf)){
+  stat(dir, &buf);
+  if(S_ISREG(buf.st_mode)){
+    puts("FILE");
     serve_file(fd, dir);
+  }else if(S_ISDIR(buf.st_mode)){
+    puts("DIR");
+    serve_directory(fd,dir);
   }else{
     http_start_response(fd,404);
     http_end_headers(fd);
-    close(fd);
-    return;
   }
  
   /* PART 2 & 3 END */
