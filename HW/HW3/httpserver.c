@@ -39,13 +39,19 @@ void serve_file(int fd, char *path) {
 
   /* TODO: PART 2 */
   /* PART 2 BEGIN */
+  int fd_server = open(path, O_RDONLY);
+  char buf1[10000],buf2[10000];
+  ssize_t rd = read(fd_server, buf1, 10000);
 
   http_start_response(fd, 200);
   http_send_header(fd, "Content-Type", http_get_mime_type(path));
-  http_send_header(fd, "Content-Length", "0"); // TODO: change this line too
+  snprintf(buf2, 10000, "Conten_Legnth:%ld\r\n",rd);
+  write(fd,buf2,10000);
+  //http_send_header(fd, "Content-Length", "0"); // TODO: change this line too
+  write(fd,buf1,rd);
   http_end_headers(fd);
-
-
+  close(fd);
+  return; 
   /* PART 2 END */
 }
 
@@ -106,7 +112,7 @@ void handle_files_request(int fd) {
   char *path = malloc(2 + strlen(request->path) + 1);
   path[0] = '.';
   path[1] = '/';
-  memcpy(path + 2, request->path, strlen(request->path) + 1);
+  memcpy(path + 2, request->path, strlen(request->path)+1);
 
   /*
    * TODO: PART 2 is to serve files. If the file given by `path` exists,
@@ -119,7 +125,19 @@ void handle_files_request(int fd) {
    */
 
   /* PART 2 & 3 BEGIN */
-
+  struct stat buf;
+  char *dir = malloc(strlen(server_files_directory)+strlen(request->path));
+  memcpy(dir, server_files_directory+1, strlen(server_files_directory)-1);
+  memcpy(dir+strlen(server_files_directory)-1, request->path, strlen(request->path)+1);
+  if(!stat(dir, &buf)){
+    serve_file(fd, dir);
+  }else{
+    http_start_response(fd,404);
+    http_end_headers(fd);
+    close(fd);
+    return;
+  }
+ 
   /* PART 2 & 3 END */
 
   close(fd);
