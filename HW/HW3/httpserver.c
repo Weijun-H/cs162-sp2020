@@ -176,6 +176,40 @@ void handle_files_request(int fd) {
   return;
 }
 
+typedef struct socket_tunnel{
+  int in_fd;
+  int out_fd;
+} socket_tunnel;
+
+void *echo_socket_data(void *tunnel){
+  socket_tunnel *my_tunnel = tunnel;
+  int in_fd = my_tunnel->in_fd;
+  int out_fd = my_tunnel->out_fd;
+
+  char *buf = calloc(1, sizeof(char) * 1024);
+  size_t in_len;
+  while((in_len = recv(in_fd, buf, 1024, 0))){
+    char *sendBuf = buf;
+    size_t remain_data = in_len;
+    while(remain_data > 0){
+      int sent_data= send(out_fd, sendBuf, in_len, 0);
+
+      if(sent_data < 1){
+	close(in_fd);
+	return NULL;
+      }
+      
+      sendBuf += sent_data;
+      remain_data -= sent_data;
+    }
+    buf -= remain_data;
+  }
+    if(in_len == -1){
+      close(out_fd);
+    }
+    return NULL;
+}
+
 /*
  * Opens a connection to the proxy target (hostname=server_proxy_hostname and
  * port=server_proxy_port) and relays traffic to/from the stream fd and the
@@ -240,7 +274,22 @@ void handle_proxy_request(int fd) {
 
   /* TODO: PART 4 */
   /* PART 4 BEGIN */
+  pthread_t thread_1;
+  pthread_t thread_2;
 
+  socket_tunnel *tunnel_1 = (socket_tunnel*) malloc(sizeof(socket_tunnel));
+  tunnel_1->in_fd = fd;
+  tunnel_1->out_fd = target_fd;
+
+  socket_tunnel *tunnel_2 = (socket_tunnel*) malloc(sizeof(socket_tunnel));
+  tunnel_2->in_fd = target_fd;
+  tunnel_2->out_fd = fd;
+
+  pthread_create(&thread_1, NULL, echo_socket_data, tunnel_1);
+  pthread_create(&thread_2, NULL, echo_socket_data, tunnel_2);
+
+  pthread_join(thread_1, NULL);
+  pthread_join(thread_2, NULL);
   /* PART 4 END */
 
 }
