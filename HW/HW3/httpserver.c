@@ -68,7 +68,7 @@ void serve_directory(int fd, char *path) {
   int exit = 0;
   if(dirp){
     while((directory=readdir(dirp))!=NULL){
-      puts(directory->d_name);
+      //puts(directory->d_name);
       if(!strcmp(directory->d_name,"index.html")){
 	exit = 1;
 	break;
@@ -160,10 +160,10 @@ void handle_files_request(int fd) {
   memcpy(dir+strlen(server_files_directory)-1, request->path, strlen(request->path)+1);
   stat(dir, &buf);
   if(S_ISREG(buf.st_mode)){
-    puts("FILE");
+    //puts("FILE");
     serve_file(fd, dir);
   }else if(S_ISDIR(buf.st_mode)){
-    puts("DIR");
+    //puts("DIR");
     serve_directory(fd,dir);
   }else{
     http_start_response(fd,404);
@@ -417,6 +417,15 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
      */
 
     /* PART 5 BEGIN */
+    int pid = fork();
+    if(pid!=0){
+      close(client_socket_number);
+    }else{
+      close(*socket_number);
+      request_handler(client_socket_number);
+      close(client_socket_number);
+      exit(0);
+    }
 
     /* PART 5 END */
 
