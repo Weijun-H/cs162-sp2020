@@ -441,6 +441,10 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
      */
 
     /* PART 6 BEGIN */
+    pthread_t thread_1;
+    pthread_create(&thread_1, NULL, request_handler, client_socket_number);
+    pthread_join(thread_1,NULL);
+    close(client_socket_number);
 
     /* PART 6 END */
 #elif POOLSERVER
