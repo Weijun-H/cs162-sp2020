@@ -309,7 +309,14 @@ void *handle_clients(void *void_request_handler) {
 
   /* TODO: PART 7 */
   /* PART 7 BEGIN */
-
+  pthread_t thread;
+  int client_fd;
+  while((client_fd = wq_pop(&work_queue))>=0){
+    pthread_create(&thread, NULL, request_handler, client_fd);
+    pthread_join(thread, NULL);
+    
+  }
+  return;
   /* PART 7 END */
 }
 
@@ -320,6 +327,11 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
 
   /* TODO: PART 7 */
   /* PART 7 BEGIN */
+
+  wq_init(&work_queue);
+  for (int i=0; i < num_threads; i++){
+    wq_push(&work_queue, -1);
+  }
 
   /* PART 7 END */
 }
@@ -457,7 +469,9 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
      */
 
     /* PART 7 BEGIN */
-
+    wq_push(&work_queue, client_socket_number);
+    handle_clients(request_handler);
+    close(client_socket_number);
     /* PART 7 END */
 #endif
   }
